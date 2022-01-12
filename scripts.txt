@@ -1,0 +1,1 @@
+python main.py --name baseline_v1 --data_path C:\data\final\train\images --validation_path C:\data\final\test\images --mask_path C:\data\final\train\masks --BERT --batch_size 4 --train_epoch 100 --gpus 0 --GELU_2 --image_size 32

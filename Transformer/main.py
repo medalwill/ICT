@@ -21,20 +21,10 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 def main_worker(gpu,opts):
 
-    rank=opts.node_rank*opts.gpus+gpu ## Get the global Rank
-
     torch.cuda.set_device(gpu)
-    dist.init_process_group(                                   
-    	backend='nccl',                                         
-   		init_method='env://',                                   
-    	world_size=opts.world_size,                              
-    	rank=rank,
-        group_name='mtorch'                                               
-    )
     set_seed(42)
 
-    if rank == 0:
-        sys.stdout = Logger(os.path.join(opts.ckpt_path, 'log.txt'))
+    sys.stdout = Logger(os.path.join(opts.ckpt_path, 'log.txt'))
 
 
     ##TODO: directly use the provided color palette provided by OpenAI. [√]
@@ -64,19 +54,17 @@ def main_worker(gpu,opts):
     ## TODO: Modify the ckpt path [√]
     train_config=TrainerConfig(max_epochs=train_epochs,batch_size=opts.batch_size,
                                 learning_rate=opts.lr,betas = (0.9, 0.95), 
-                                weight_decay=0,lr_decay=True,warmup_tokens=tokens_per_epoch/opts.world_size, 
-                                final_tokens=train_epochs*tokens_per_epoch/opts.world_size,ckpt_path=opts.ckpt_path,
-                                num_workers=8,GPU_ids=opts.GPU_ids, BERT=opts.BERT, world_size=opts.world_size,
+                                weight_decay=0,lr_decay=True,warmup_tokens=tokens_per_epoch,
+                                final_tokens=train_epochs*tokens_per_epoch,ckpt_path=opts.ckpt_path,
+                                num_workers=8,GPU_ids=opts.GPU_ids, BERT=opts.BERT,
                                 AMP=opts.AMP,print_freq=opts.print_freq)
-    trainer = Trainer(IGPT_model, train_dataset, test_dataset, train_config, gpu, rank)
+    trainer = Trainer(IGPT_model, train_dataset, test_dataset, train_config, gpu)
     loaded_ckpt=trainer.load_checkpoint(opts.resume_ckpt)
     trainer.train(loaded_ckpt)
     print("Finish the training ...")
 
 
-
 if __name__=='__main__':
-
 
     parser=argparse.ArgumentParser()
     parser.add_argument('--name',type=str,default='ICT',help='The name of this exp')
@@ -97,7 +85,7 @@ if __name__=='__main__':
     ### Define the size of transformer
     parser.add_argument('--n_layer',type=int,default=14)
     parser.add_argument('--n_head',type=int,default=8)
-    parser.add_argument('--n_embd',type=int,default=256)
+    parser.add_argument('--n_embd',type=int,default=512)
     parser.add_argument('--lr',type=float,default=3e-4)
     parser.add_argument('--GELU_2',action='store_true',help='use the new activation function')
 
@@ -123,11 +111,6 @@ if __name__=='__main__':
     opts.resume_ckpt=os.path.join(opts.ckpt_path,opts.resume_ckpt)
     os.makedirs(opts.ckpt_path, exist_ok=True)
 
-    opts.world_size=opts.nodes*opts.gpus
-    os.environ['MASTER_ADDR'] = '127.0.0.1'
-    os.environ['MASTER_PORT'] = '48364'   
-
-
     logging.basicConfig(
             # filename=os.path.join(opts.ckpt_path,'running.log'),
             format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
@@ -135,5 +118,4 @@ if __name__=='__main__':
             level=logging.INFO,
     )
 
-
-    mp.spawn(main_worker, nprocs=opts.gpus, args=(opts,))
+    main_worker(opts.gpus, opts)

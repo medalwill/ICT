@@ -1,0 +1,6 @@
+
+*.pyc
+*.xml
+*.iml
+*.pth
+Transformer/ckpt/baseline_v1/log.txt

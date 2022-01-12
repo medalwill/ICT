@@ -15,7 +15,7 @@ import torch.distributed as dist
 
 import torch.multiprocessing as mp
 from torch.utils.data.distributed import DistributedSampler
-from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.nn import DataParallel
 from torch.cuda.amp import autocast, GradScaler
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ class TrainerConfig:
 
 class Trainer:
 
-    def __init__(self, model, train_dataset, test_dataset, config, gpu, global_rank):
+    def __init__(self, model, train_dataset, test_dataset, config, gpu):
         self.model = model
         self.train_dataset = train_dataset
         self.test_dataset = test_dataset
@@ -49,21 +49,23 @@ class Trainer:
         self.device=gpu
 
         self.model=model.cuda(gpu)
-        self.global_rank=global_rank
-        self.train_sampler=DistributedSampler(train_dataset, num_replicas=config.world_size, rank=global_rank)
-        self.test_sampler=DistributedSampler(test_dataset, num_replicas=config.world_size, rank=global_rank)
+
+        # self.train_loader = DataLoader(self.train_dataset, shuffle=False, pin_memory=True,
+        #                           batch_size=config.batch_size, num_workers=config.num_workers)
+        # self.test_loader = DataLoader(self.test_dataset, shuffle=False, pin_memory=True,
+        #                          batch_size=config.batch_size, num_workers=config.num_workers)
 
     def save_checkpoint(self, epoch, optim, tokens, validation_loss,save_name):
-         if self.global_rank==0: ## Only save in global rank 0
+         # if self.global_rank==0: ## Only save in global rank 0
             # DataParallel wrappers keep raw model object in .module attribute
-            raw_model = self.model.module if hasattr(self.model, "module") else self.model
-            save_url=os.path.join(self.config.ckpt_path,save_name+'.pth')
-            logger.info("saving %s", save_url)
-            torch.save({'model': raw_model.state_dict(),
-                        'epoch': epoch,
-                        'optimizer':optim.state_dict(),
-                        'tokens': tokens,
-                        'best_validation_loss': validation_loss}, save_url)
+        raw_model = self.model.module if hasattr(self.model, "module") else self.model
+        save_url=os.path.join(self.config.ckpt_path,save_name+'.pth')
+        logger.info("saving %s", save_url)
+        torch.save({'model': raw_model.state_dict(),
+                    'epoch': epoch,
+                    'optimizer':optim.state_dict(),
+                    'tokens': tokens,
+                    'best_validation_loss': validation_loss}, save_url)
 
     def load_checkpoint(self, resume_path):
         if os.path.exists(resume_path):
@@ -74,8 +76,8 @@ class Trainer:
             print('Finished reloading the Epoch %d model'%(data['epoch']))
             return data
         else:
-            if self.global_rank==0:
-                print('Warnning: There is no trained model found. An initialized model will be used.')
+            # if self.global_rank==0:
+            print('Warnning: There is no trained model found. An initialized model will be used.')
         return None
 
     def train(self, loaded_ckpt):
@@ -97,15 +99,15 @@ class Trainer:
 
         
         #model = DDP(self.model,device_ids=[self.global_rank],output_device=self.global_rank,broadcast_buffers=True)
-        model = DDP(self.model,device_ids=[self.device])
+        model = DataParallel(self.model,device_ids=[self.device])
                     
         ## TODO: Use different seeds to initialize each worker. (This issue is caused by the bug of pytorch itself)
         train_loader = DataLoader(self.train_dataset, shuffle=False, pin_memory=True,
-                            batch_size=config.batch_size // config.world_size, ## BS of each GPU
-                            num_workers=config.num_workers,sampler=self.train_sampler)
+                            batch_size=config.batch_size, ## BS of each GPU
+                            num_workers=config.num_workers)
         test_loader = DataLoader(self.test_dataset, shuffle=False, pin_memory=True,
-                            batch_size=config.batch_size // config.world_size, ## BS of each GPU
-                            num_workers=config.num_workers,sampler=self.test_sampler)
+                            batch_size=config.batch_size, ## BS of each GPU
+                            num_workers=config.num_workers)
 
         def run_epoch(split):
             is_train = split == 'train'
@@ -197,7 +199,7 @@ class Trainer:
             if epoch==previous_epoch+1:
                 print("Resume from Epoch %d"%(epoch))
 
-            self.train_sampler.set_epoch(epoch) ## Shuffle each epoch
+            # self.train_sampler.set_epoch(epoch) ## Shuffle each epoch
 
             epoch_start=time.time()
             run_epoch('train')
@@ -207,7 +209,7 @@ class Trainer:
             print("Epoch: %d, test loss: %f, time for one epoch: %d seconds"%(epoch, test_loss, time.time() - epoch_start))
             # supports early stopping based on the test loss, or just save always if no test set is provided
             good_model = self.test_dataset is None or test_loss < best_loss
-            if self.config.ckpt_path is not None and good_model and self.global_rank==0: ## Validation on the global_rank==0 process
+            if self.config.ckpt_path is not None and good_model: ## Validation on the global_rank==0 process
 
                 best_loss = test_loss
                 print("current best epoch is %d"%(epoch))
