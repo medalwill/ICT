@@ -20,7 +20,7 @@ if __name__=='__main__':
 
     parser=argparse.ArgumentParser()
     parser.add_argument('--GPU_ids',type=str,default='0')
-    parser.add_argument('--ckpt_path',type=str,default='./ckpt')
+    parser.add_argument('--ckpt_path',type=str,default='./ckpt/baseline_v1/best.pth')
     parser.add_argument('--BERT',action='store_true', help='BERT model, Image Completion')
     parser.add_argument('--image_url',type=str,default='',help='the folder of image')
     parser.add_argument('--mask_url',type=str,default='',help='the folder of mask')
@@ -30,11 +30,11 @@ if __name__=='__main__':
 
     parser.add_argument('--n_layer',type=int,default=14)
     parser.add_argument('--n_head',type=int,default=8)
-    parser.add_argument('--n_embd',type=int,default=256)
+    parser.add_argument('--n_embd',type=int,default=512)
     parser.add_argument('--GELU_2',action='store_true',help='use the new activation function')
 
-    parser.add_argument('--save_url',type=str,default='./',help='save the output results')
-    parser.add_argument('--n_samples',type=int,default=8,help='sample cnt')
+    parser.add_argument('--save_url',type=str,default='./results/baseline_v1',help='save the output results')
+    parser.add_argument('--n_samples',type=int,default=3,help='sample cnt')
 
     parser.add_argument('--sample_all',action='store_true',help='sample all pixel together, ablation use')
     parser.add_argument('--skip_number',type=int,default=0,help='since the inference is slow, skip the image which has been inferenced')
@@ -82,48 +82,45 @@ if __name__=='__main__':
         mask_list=mask_list[opts.skip_number-1:]
         print("Resume from %s"%(img_list[0]))
 
-
     if opts.BERT:
 
-        for x_name,y_name in zip(img_list,mask_list):
+        for x_name in img_list:
+            for y_name in mask_list:
 
-            if x_name!=y_name:
-                print("### Something Wrong ###")
+                image_url=os.path.join(opts.image_url,x_name)
+                input_image=Image.open(image_url).convert("RGB")
+                x = input_image.resize((opts.image_size,opts.image_size),resample=Image.BILINEAR)
+                x = torch.from_numpy(np.array(x)).view(-1, 3)
+                x = x.float()
+                a = ((x[:, None, :] - C[None, :, :])**2).sum(-1).argmin(1) # cluster assignments
 
-            image_url=os.path.join(opts.image_url,x_name)
-            input_image=Image.open(image_url).convert("RGB")
-            x = input_image.resize((opts.image_size,opts.image_size),resample=Image.BILINEAR)
-            x = torch.from_numpy(np.array(x)).view(-1, 3)
-            x = x.float()
-            a = ((x[:, None, :] - C[None, :, :])**2).sum(-1).argmin(1) # cluster assignments
+                mask_url=os.path.join(opts.mask_url,y_name)
+                input_mask=Image.open(mask_url).convert("L")
+                y = input_mask.resize((opts.image_size,opts.image_size),resample=Image.NEAREST)
+                y = torch.from_numpy(np.array(y)/255.).view(-1)
+                y = y>0.5
+                y = y.float()
 
-            mask_url=os.path.join(opts.mask_url,y_name)
-            input_mask=Image.open(mask_url).convert("L")
-            y = input_mask.resize((opts.image_size,opts.image_size),resample=Image.NEAREST)
-            y = torch.from_numpy(np.array(y)/255.).view(-1)
-            y = y>0.5
-            y = y.float()
+                a_list=[a]*n_samples
+                a_tensor=torch.stack(a_list,dim=0) ## Input images
+                b_list=[y]*n_samples
+                b_tensor=torch.stack(b_list,dim=0) ## Input masks
+                a_tensor*=(1-b_tensor).long()
 
-            a_list=[a]*n_samples
-            a_tensor=torch.stack(a_list,dim=0) ## Input images
-            b_list=[y]*n_samples
-            b_tensor=torch.stack(b_list,dim=0) ## Input masks
-            a_tensor*=(1-b_tensor).long()
+                if opts.sample_all:
+                    pixels=sample_mask_all(IGPT_model,context=a_tensor,length=opts.image_size*opts.image_size,num_sample=n_samples,top_k=opts.top_k,mask=b_tensor,no_bar=opts.no_progressive_bar)
+                else:
+                    pixels=sample_mask(IGPT_model,context=a_tensor,length=opts.image_size*opts.image_size,num_sample=n_samples,top_k=opts.top_k,mask=b_tensor,no_bar=opts.no_progressive_bar)
 
-            if opts.sample_all:
-                pixels=sample_mask_all(IGPT_model,context=a_tensor,length=opts.image_size*opts.image_size,num_sample=n_samples,top_k=opts.top_k,mask=b_tensor,no_bar=opts.no_progressive_bar)
-            else:
-                pixels=sample_mask(IGPT_model,context=a_tensor,length=opts.image_size*opts.image_size,num_sample=n_samples,top_k=opts.top_k,mask=b_tensor,no_bar=opts.no_progressive_bar)
+                img_name=x_name[:-4] + '_m' + y_name[-6:-4] +'.png'
+                for i in range(n_samples):
 
-            img_name=x_name[:-4]+'.png'
-            for i in range(n_samples):
-
-                current_url=os.path.join(opts.save_url,'condition_%d'%(i+1))
-                os.makedirs(current_url,exist_ok=True)
-                current_img=C[pixels[i]].view(opts.image_size, opts.image_size, 3).numpy().astype(np.uint8)
-                tmp=Image.fromarray(current_img)
-                tmp.save(os.path.join(current_url,img_name))
-            print("Finish %s"%(img_name))
+                    current_url=os.path.join(opts.save_url,'condition_%d'%(i+1))
+                    os.makedirs(current_url,exist_ok=True)
+                    current_img=C[pixels[i]].view(opts.image_size, opts.image_size, 3).numpy().astype(np.uint8)
+                    tmp=Image.fromarray(current_img)
+                    tmp.save(os.path.join(current_url,img_name))
+                print("Finish %s"%(img_name))
         
-        e_time=time.time()
-        print("This test totally costs %.5f seconds"%(e_time-s_time))
+            e_time=time.time()
+            print("This test totally costs %.5f seconds"%(e_time-s_time))
