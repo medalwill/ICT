@@ -24,8 +24,7 @@ class Dataset(torch.utils.data.Dataset):
         self.edge_data = self.load_flist(edge_flist)
         self.mask_data = self.load_flist(mask_flist)
 
-
-        if not training:  ## During testing, load the transformer prior
+        if not training:  # During testing, load the transformer prior
             all_data=[]
             all_edge_data=[]
             all_mask_data=[]
@@ -39,14 +38,12 @@ class Dataset(torch.utils.data.Dataset):
             self.edge_data=all_edge_data
             self.mask_data=all_mask_data
 
-
         self.input_size = config.INPUT_SIZE
         self.edge = config.EDGE
         self.mask = config.MASK
         self.prior_size = config.prior_size
 
         self.config=config
-
 
         self.clusters=np.load('./kmeans_centers.npy')
 
@@ -79,14 +76,13 @@ class Dataset(torch.utils.data.Dataset):
         size = self.input_size
 
         # load image
-        #img = imread(self.data[index])
+        # img = imread(self.data[index])
         img = Image.open(self.data[index]).convert("RGB")
         img = np.array(img)
 
         # resize/crop if needed
         if size != 0:
             img = self.resize(img, size, size)
-
 
         # load mask
         mask = self.load_mask(img, index)
@@ -107,7 +103,6 @@ class Dataset(torch.utils.data.Dataset):
         return self.to_tensor(img), self.to_tensor(prior), self.to_tensor(mask)
 
     def load_prior(self, img, index):
-
 
         # Training, prior_degradation
         if self.edge == 1:

@@ -3,4 +3,7 @@ python main.py --name baseline_v1 --data_path C:\data\final\train\images --valid
 python Inference.py --image_url C:\data\final\test\images --mask_url C:\data\final\train\masks --BERT --GELU_2 --image_size 32 --sample_all
 
 
+python train.py --model 2 --checkpoints ./ckpt --config_file ./config_list/config_template.yml --Generator 4 --use_degradation_2
+
+python test.py --test_batch_size 3 --model 2 --condition_num 3 --same_face
 

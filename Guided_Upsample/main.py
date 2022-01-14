@@ -74,7 +74,7 @@ def load_config(mode=None):
     """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path', '--checkpoints', type=str, default='./checkpoints', help='model checkpoints path (default: ./checkpoints)')
+    parser.add_argument('--path', '--checkpoints', type=str, default='./ckpt', help='model checkpoints path (default: ./checkpoints)')
     parser.add_argument('--model', type=int, choices=[1, 2, 3, 4], help='1: edge model, 2: inpaint model, 3: edge-inpaint model, 4: joint model')
     parser.add_argument('--config_file',type=str,default='./config.yml.example',help='The config file of each experiment ')
 
@@ -85,10 +85,13 @@ def load_config(mode=None):
 
     # test mode
     if mode == 2:
-        parser.add_argument('--input', type=str, help='path to the input images directory or an input image')
-        parser.add_argument('--mask', type=str, help='path to the masks directory or a mask file')
-        parser.add_argument('--prior', type=str, help='path to the edges directory or an edge file')
-        parser.add_argument('--output', type=str, help='path to the output directory')
+        parser.add_argument('--input', type=str, default='/mnt/datadisk0/final/test/new_images',
+                            help='path to the input images directory or an input image')
+        parser.add_argument('--mask', type=str, default='/mnt/datadisk0/final/test/new_masks',
+                            help='path to the masks directory or a mask file')
+        parser.add_argument('--prior', type=str, default='/mnt/datadisk0/final/test/anchors',
+                            help='path to the edges directory or an edge file')
+        parser.add_argument('--output', type=str, default='./results', help='path to the output directory')
         parser.add_argument('--same_face',action='store_true',help='Same face will be saved in one batch')
         parser.add_argument('--test_batch_size',type=int,default=8,help='equals to the condition number')
         parser.add_argument('--merge',action='store_true',help='merge the unmasked region')

@@ -11,17 +11,17 @@ VERBOSE: 0          # turns on verbose mode in the output console
 Generator: 0        # 0: original
 No_Bar: True        # Turn off the progressive bar
 
-TRAIN_FLIST: DATASET/place2/Places2_Train_Set/Places
-VAL_FLIST: DATASET/place2/Places2_Train_Set/val
-TEST_FLIST: ./datasets/places2_test.flist
+TRAIN_FLIST: /mnt/datadisk0/final/train/images
+VAL_FLIST: /mnt/datadisk0/final/test/images
+TEST_FLIST: /mnt/datadisk0/final/test/images
 
 TRAIN_EDGE_FLIST: ./
 VAL_EDGE_FLIST: ./
 TEST_EDGE_FLIST: ./
 
-TRAIN_MASK_FLIST: DATASET/train_mask
-VAL_MASK_FLIST: DATASET/val_mask
-TEST_MASK_FLIST: DATASET/test_mask
+TRAIN_MASK_FLIST: /mnt/datadisk0/final/small_masks
+VAL_MASK_FLIST: /mnt/datadisk0/final/small_masks
+TEST_MASK_FLIST: /mnt/datadisk0/final/small_masks
 
 LR: 0.0001                    # learning rate
 D2G_LR: 0.1                   # discriminator/generator learning rate ratio
