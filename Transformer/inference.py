@@ -20,7 +20,7 @@ if __name__=='__main__':
 
     parser=argparse.ArgumentParser()
     parser.add_argument('--GPU_ids',type=str,default='0')
-    parser.add_argument('--ckpt_path',type=str,default='./ckpt/baseline_v1/best.pth')
+    parser.add_argument('--ckpt_path',type=str,default='./ckpt/baseline_v2/best.pth')
     parser.add_argument('--BERT',action='store_true', help='BERT model, Image Completion')
     parser.add_argument('--image_url',type=str,default='',help='the folder of image')
     parser.add_argument('--mask_url',type=str,default='',help='the folder of mask')
@@ -33,7 +33,7 @@ if __name__=='__main__':
     parser.add_argument('--n_embd',type=int,default=512)
     parser.add_argument('--GELU_2',action='store_true',help='use the new activation function')
 
-    parser.add_argument('--save_url',type=str,default='./results/baseline_v1',help='save the output results')
+    parser.add_argument('--save_url',type=str,default='./results/baseline_v2',help='save the output results')
     parser.add_argument('--n_samples',type=int,default=4,help='sample cnt')
 
     parser.add_argument('--sample_all',action='store_true',help='sample all pixel together, ablation use')

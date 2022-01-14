@@ -1,6 +1,6 @@
 python main.py --name baseline_v2 --data_path /mnt/datadisk0/final/train/images --validation_path /mnt/datadisk0/final/test/images --mask_path /mnt/datadisk0/final/ICT_masks --BERT --batch_size 16 --train_epoch 100 --gpus 0 --GELU_2 --image_size 32
 
-python Inference.py --image_url /mnt/datadisk0/final/test/images --mask_url /mnt/datadisk0/final/ICT_masks --BERT --GELU_2 --image_size 32 --sample_all
+python inference.py --image_url /mnt/datadisk0/final/test/images --mask_url /mnt/datadisk0/final/ICT_masks --BERT --GELU_2 --image_size 32 --sample_all
 
 
 python train.py --model 2 --checkpoints ./ckpt --config_file ./config_list/config_template.yml --Generator 4 --use_degradation_2
