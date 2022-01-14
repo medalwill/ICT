@@ -98,7 +98,7 @@ def load_config(mode=None):
 
 
         parser.add_argument('--score',action='store_true')
-        parser.add_argument('--condition_num',type=int,default=8,help='Use how many BERT output')
+        parser.add_argument('--condition_num',type=int,default=4,help='Use how many BERT output')
 
     args = parser.parse_args()
     config_path = os.path.join(args.path, 'config.yml')

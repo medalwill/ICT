@@ -34,7 +34,7 @@ if __name__=='__main__':
     parser.add_argument('--GELU_2',action='store_true',help='use the new activation function')
 
     parser.add_argument('--save_url',type=str,default='./results/baseline_v1',help='save the output results')
-    parser.add_argument('--n_samples',type=int,default=3,help='sample cnt')
+    parser.add_argument('--n_samples',type=int,default=4,help='sample cnt')
 
     parser.add_argument('--sample_all',action='store_true',help='sample all pixel together, ablation use')
     parser.add_argument('--skip_number',type=int,default=0,help='since the inference is slow, skip the image which has been inferenced')
